@@ -2,6 +2,7 @@ import json
 import time
 import httpx
 import boto3
+import os
 from botocore.exceptions import ClientError
 from typing import Optional, Dict, Any
 
@@ -145,6 +146,20 @@ class BackendCallbackClient:
             s3_client = boto3.client('s3', region_name=settings.aws_region)
             
             # 결과 데이터 준비
+            # 예시 JSON 구조:
+            # {
+            #     "job_id": "job-12345-abcdef",
+            #     "user_id": "user-67890",
+            #     "s3_bucket": "shortform-video-bucket",
+            #     "s3_key": "videos/user-67890/video-123.mp4",
+            #     "transcript": "안녕하세요. 오늘은 비디오 처리에 대해 설명하겠습니다...",
+            #     "summary": "이 비디오는 비디오 처리 기술에 대한 개요를 제공합니다...",
+            #     "created_at": "2024-01-15T10:30:45.123456",
+            #     "metadata": {
+            #         "model": "claude-3-7-sonnet-latest",
+            #         "stt_engine": "clova"
+            #     }
+            # }
             result_data = {
                 "job_id": job_context.job_id,
                 "user_id": job_context.user_id,
@@ -159,8 +174,14 @@ class BackendCallbackClient:
                 }
             }
             
-            # S3 키 생성
-            result_key = f"results/{job_context.user_id or 'unknown'}/{job_context.job_id}.json"
+            # S3 키에서 비디오 파일명 추출
+            # 예: "videos/user-123/hamzzi.mp4" -> "hamzzi.mp4" -> "hamzzi"
+            video_filename = os.path.basename(job_context.s3_key)  # "hamzzi.mp4"
+            video_name = os.path.splitext(video_filename)[0]  # "hamzzi" (확장자 제거)
+            
+            # S3 키 생성: summary/summary_{video_name}.json
+            # 예: "summary/summary_hamzzi.json"
+            result_key = f"summary/summary_{video_name}.json"
             
             # JSON으로 변환
             json_data = json.dumps(result_data, ensure_ascii=False, indent=2)

@@ -28,7 +28,7 @@ class SQSConsumer:
                 QueueUrl=self.queue_url,
                 MaxNumberOfMessages=1,
                 WaitTimeSeconds=self.wait_time,
-                VisibilityTimeoutSeconds=self.visibility_timeout,
+                VisibilityTimeout=self.visibility_timeout,
                 MessageAttributeNames=['All']
             )
             
@@ -113,7 +113,7 @@ class SQSConsumer:
     def _extract_ids_from_key(self, key: str) -> tuple[str, Optional[str]]:
         """
         S3 키에서 job_id와 user_id를 추출합니다.
-        예상 형식: "videos/{user_id}/{job_id}.mp4"
+        job_id는 전체 S3 키를 사용합니다 (예: "videos/user-123/hamzzi.mp4")
         """
         if not key or not isinstance(key, str):
             raise ValueError(f"Invalid S3 key: {key}")
@@ -121,32 +121,22 @@ class SQSConsumer:
         try:
             parts = key.split('/')
             if len(parts) >= 3 and parts[0] == "videos":
+                # user_id 추출 (예: "user-123")
                 user_id = parts[1]
-                filename = parts[2]
-                job_id = filename.split('.')[0]  # 확장자 제거
                 
-                # ID 유효성 검증
-                if not job_id or not job_id.replace('_', '').replace('-', '').isalnum():
-                    raise ValueError(f"Invalid job_id format: {job_id}")
+                # job_id는 전체 S3 키 사용
+                job_id = key
                 
                 return job_id, user_id
             else:
-                # 다른 형식의 경우 키 전체를 job_id로 사용
-                filename = key.split('/')[-1]
-                job_id = filename.split('.')[0]
-                
-                # 안전한 job_id 생성
-                safe_job_id = ''.join(c for c in job_id if c.isalnum() or c in '_-')
-                if not safe_job_id:
-                    safe_job_id = f"job_{hash(key) % 1000000:06d}"
-                
-                return safe_job_id, None
+                # videos/ 형식이 아닌 경우에도 전체 키를 job_id로 사용
+                job_id = key
+                return job_id, None
                 
         except (IndexError, AttributeError) as e:
             self.logger.error("Key에서 ID 추출 실패", error=str(e), key=key)
-            # fallback: 안전한 job_id 생성
-            safe_job_id = f"fallback_{hash(key) % 1000000:06d}"
-            return safe_job_id, None
+            # fallback: 전체 키를 job_id로 사용
+            return key, None
     
     def poll_and_process(self, processor_func):
         """
