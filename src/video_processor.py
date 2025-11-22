@@ -1,4 +1,5 @@
 import os
+import re
 import boto3
 import ffmpeg
 from ffmpeg._run import Error as FFmpegError
@@ -28,11 +29,46 @@ class VideoProcessor:
                    key=job_context.s3_key)
         
         try:
+            # 비디오 파일 형식 검증 (FFmpeg가 지원하는 주요 형식)
+            video_extensions = {
+                '.mp4', '.m4v', '.mov', '.qt',      # MPEG-4, QuickTime
+                '.avi', '.divx',                     # AVI
+                '.mkv', '.webm',                     # Matroska, WebM
+                '.flv', '.f4v',                      # Flash Video
+                '.wmv', '.asf',                      # Windows Media
+                '.mpg', '.mpeg', '.m2v',             # MPEG
+                '.3gp', '.3g2',                      # 3GPP
+                '.ts', '.mts', '.m2ts',              # MPEG Transport Stream
+                '.vob',                              # DVD Video
+                '.ogv', '.ogg'                       # Ogg Video
+            }
+            file_ext = os.path.splitext(job_context.s3_key)[1].lower()
+            
+            if file_ext not in video_extensions:
+                error_msg = f"비디오 파일이 아닙니다: {file_ext} (지원 형식: {', '.join(video_extensions)})"
+                logger.error("파일 형식 검증 실패", 
+                           stage=LogStage.DOWNLOAD_DONE,
+                           error=error_msg,
+                           error_code=ErrorCode.S3_DOWNLOAD_FAILED,
+                           file_extension=file_ext)
+                raise ValueError(error_msg)
+            
             # 로컬 파일 경로 생성 - S3 키에서 파일명만 추출하여 사용
+            # 원본 파일 확장자 유지 (mp4, mov, avi 등)
             filename = os.path.basename(job_context.s3_key)
-            # 파일명에서 확장자 제거 후 .mp4 추가 (이미 .mp4인 경우 중복 방지)
-            name_without_ext = os.path.splitext(filename)[0]
-            local_path = self.temp_dir / f"{name_without_ext}.mp4"
+            name_without_ext, original_ext = os.path.splitext(filename)
+            
+            # 파일명이 너무 길면 잘라내기 (최대 200자)
+            if len(name_without_ext) > 200:
+                name_without_ext = name_without_ext[:200]
+            
+            # 안전한 파일명 생성 (특수문자 제거, 확장자는 유지)
+            safe_name = re.sub(r'[^\w\-_\.]', '_', name_without_ext)
+            # 원본 확장자 유지 (소문자로 정규화)
+            local_path = self.temp_dir / f"{safe_name}{original_ext.lower()}"
+            
+            # 디렉토리가 없으면 생성 (이미 존재하지만 안전을 위해)
+            local_path.parent.mkdir(parents=True, exist_ok=True)
             
             # S3에서 파일 다운로드
             self.s3.download_file(
@@ -77,9 +113,17 @@ class VideoProcessor:
         
         try:
             # 출력 파일 경로 - 비디오 파일명과 동일한 베이스명 사용
+            # 안전한 파일명 생성
             filename = os.path.basename(job_context.s3_key)
             name_without_ext = os.path.splitext(filename)[0]
-            audio_path = self.temp_dir / f"{name_without_ext}.wav"
+            
+            # 파일명이 너무 길면 잘라내기
+            if len(name_without_ext) > 200:
+                name_without_ext = name_without_ext[:200]
+            
+            # 안전한 파일명 생성 (특수문자 제거)
+            safe_name = re.sub(r'[^\w\-_\.]', '_', name_without_ext)
+            audio_path = self.temp_dir / f"{safe_name}.wav"
             
             # FFmpeg로 오디오 추출 (SPEC 6단계 적용)
             # 1. 스테레오 → 모노, 2. 16kHz 리샘플, 3. highpass(200Hz), 4. lowpass(3.8kHz), 5. 노이즈 감소
