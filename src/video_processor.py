@@ -28,8 +28,11 @@ class VideoProcessor:
                    key=job_context.s3_key)
         
         try:
-            # 로컬 파일 경로 생성
-            local_path = self.temp_dir / f"{job_context.job_id}.mp4"
+            # 로컬 파일 경로 생성 - S3 키에서 파일명만 추출하여 사용
+            filename = os.path.basename(job_context.s3_key)
+            # 파일명에서 확장자 제거 후 .mp4 추가 (이미 .mp4인 경우 중복 방지)
+            name_without_ext = os.path.splitext(filename)[0]
+            local_path = self.temp_dir / f"{name_without_ext}.mp4"
             
             # S3에서 파일 다운로드
             self.s3.download_file(
@@ -73,8 +76,10 @@ class VideoProcessor:
                    input_path=job_context.local_video_path)
         
         try:
-            # 출력 파일 경로
-            audio_path = self.temp_dir / f"{job_context.job_id}.wav"
+            # 출력 파일 경로 - 비디오 파일명과 동일한 베이스명 사용
+            filename = os.path.basename(job_context.s3_key)
+            name_without_ext = os.path.splitext(filename)[0]
+            audio_path = self.temp_dir / f"{name_without_ext}.wav"
             
             # FFmpeg로 오디오 추출 (SPEC 6단계 적용)
             # 1. 스테레오 → 모노, 2. 16kHz 리샘플, 3. highpass(200Hz), 4. lowpass(3.8kHz), 5. 노이즈 감소

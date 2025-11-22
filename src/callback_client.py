@@ -69,7 +69,10 @@ class BackendCallbackClient:
         """
         실제 콜백 전송 로직
         """
-        url = f"{self.base_url}/internal/jobs/{job_id}/complete"
+        # URL 인코딩 처리 - job_id에 특수문자가 있을 수 있음
+        from urllib.parse import quote
+        encoded_job_id = quote(job_id, safe='')
+        url = f"{self.base_url}/internal/jobs/{encoded_job_id}/complete"
         headers = {
             'Content-Type': 'application/json',
             'X-Internal-Token': self.internal_token,
