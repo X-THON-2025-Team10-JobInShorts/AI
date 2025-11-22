@@ -1,6 +1,7 @@
 import os
 import boto3
 import ffmpeg
+from ffmpeg._run import Error as FFmpegError
 from pathlib import Path
 from typing import Optional
 from botocore.exceptions import ClientError, BotoCoreError
@@ -106,7 +107,7 @@ class VideoProcessor:
             job_context.local_audio_path = str(audio_path)
             return str(audio_path)
             
-        except ffmpeg.Error as e:
+        except FFmpegError as e:
             error_msg = e.stderr.decode('utf-8') if e.stderr else str(e)
             
             # afftdn 필터 실패시 anlmdn으로 fallback 시도

@@ -1,6 +1,8 @@
 import json
 import time
 import httpx
+import boto3
+from botocore.exceptions import ClientError
 from typing import Optional, Dict, Any
 
 from .config import settings
@@ -84,7 +86,7 @@ class BackendCallbackClient:
                     response = client.post(
                         url,
                         headers=headers,
-                        json=callback_data.dict(exclude_none=True)
+                        json=callback_data.model_dump(exclude_none=True)
                     )
                     response.raise_for_status()
                     
@@ -134,9 +136,6 @@ class BackendCallbackClient:
         """
         처리 결과를 S3에 JSON 파일로 업로드합니다.
         """
-        import boto3
-        from botocore.exceptions import ClientError
-        
         if not job_context.transcript and not job_context.summary:
             return None
         
