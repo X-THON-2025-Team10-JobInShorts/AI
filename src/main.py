@@ -3,7 +3,7 @@ import signal
 import sys
 from typing import Optional
 
-from .config import settings
+from .config import settings, validate_required_settings
 from .logger import setup_logger, get_job_logger, LogStage, ErrorCode
 from .models import JobContext, ProcessingResult
 from .sqs_consumer import SQSConsumer
@@ -171,24 +171,10 @@ def main():
     setup_logger(level="INFO")
     
     # 환경 변수 검증
-    required_vars = [
-        settings.sqs_queue_url,
-        settings.backend_base_url,
-        settings.backend_internal_token,
-        settings.clova_api_key_id,
-        settings.clova_api_key,
-        settings.claude_api_key
-    ]
-    
-    if not all(required_vars):
-        print("ERROR: 필수 환경 변수가 설정되지 않았습니다.")
-        print("다음 환경 변수들이 필요합니다:")
-        print("- SQS_QUEUE_URL")
-        print("- BACKEND_BASE_URL")
-        print("- BACKEND_INTERNAL_TOKEN")
-        print("- CLOVA_API_KEY_ID")
-        print("- CLOVA_API_KEY")
-        print("- CLAUDE_API_KEY")
+    try:
+        validate_required_settings()
+    except ValueError as e:
+        print(f"ERROR: {e}")
         sys.exit(1)
     
     # 워커 시작

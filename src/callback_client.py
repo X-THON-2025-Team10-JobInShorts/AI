@@ -69,7 +69,8 @@ class BackendCallbackClient:
         url = f"{self.base_url}/internal/jobs/{job_id}/complete"
         headers = {
             'Content-Type': 'application/json',
-            'X-Internal-Token': self.internal_token
+            'X-Internal-Token': self.internal_token,
+            'User-Agent': f'ai-video-processor/{settings.app_env}'
         }
         
         for attempt in range(self.max_retries + 1):

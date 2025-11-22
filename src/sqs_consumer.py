@@ -2,6 +2,7 @@ import json
 import time
 import boto3
 from typing import Optional, Dict, Any
+from urllib.parse import unquote
 from botocore.exceptions import ClientError, BotoCoreError
 
 from .config import settings
@@ -36,7 +37,7 @@ class SQSConsumer:
                 return None
             
             message = messages[0]
-            self.logger.info("SQS 메시지 수신", 
+            self.logger.info("메시지 수신됨!", 
                            message_id=message.get('MessageId'),
                            receipt_handle=message.get('ReceiptHandle')[:20] + "...")
             
@@ -55,25 +56,45 @@ class SQSConsumer:
                 QueueUrl=self.queue_url,
                 ReceiptHandle=receipt_handle
             )
-            self.logger.info("SQS 메시지 삭제 완료", receipt_handle=receipt_handle[:20] + "...")
+            self.logger.info("SQS 메시지 삭제 완료 (처리 끝)", receipt_handle=receipt_handle[:20] + "...")
             return True
             
         except (ClientError, BotoCoreError) as e:
             self.logger.error("SQS 메시지 삭제 실패", error=str(e), receipt_handle=receipt_handle[:20] + "...")
             return False
     
-    def parse_s3_event(self, message_body: str) -> JobContext:
+    def parse_s3_event(self, message_body: str) -> Optional[JobContext]:
         """
         S3 Event Notification 메시지를 파싱하여 JobContext를 생성합니다.
+        Go 코드 참조: URL 디코딩, 테스트 메시지 처리 포함
         """
         try:
             event_data = json.loads(message_body)
+            
+            # Records 배열이 없는 경우 처리 (테스트 메시지 등)
+            if "Records" not in event_data or not event_data["Records"]:
+                self.logger.info("Records가 없는 메시지 수신 (테스트 메시지일 가능성)", 
+                               message_body=message_body[:100])
+                return None
+            
             sqs_message = SQSMessage(**event_data)
             
             # 첫 번째 레코드 사용
             record = sqs_message.first_record
             bucket = record.get_bucket_name()
-            key = record.get_object_key()
+            raw_key = record.get_object_key()
+            
+            # Go 코드와 동일하게 URL 디코딩 처리
+            try:
+                key = unquote(raw_key)
+                if key != raw_key:
+                    self.logger.info("S3 키 URL 디코딩 수행", raw_key=raw_key, decoded_key=key)
+            except Exception as e:
+                self.logger.warning("S3 키 URL 디코딩 실패, 원본 사용", 
+                                  raw_key=raw_key, error=str(e))
+                key = raw_key
+            
+            self.logger.info("🎯 타겟 발견", bucket=bucket, key=key)
             
             # key에서 job_id와 user_id 추출 (예: "videos/{user_id}/{job_id}.mp4")
             job_id, user_id = self._extract_ids_from_key(key)
@@ -94,29 +115,45 @@ class SQSConsumer:
         S3 키에서 job_id와 user_id를 추출합니다.
         예상 형식: "videos/{user_id}/{job_id}.mp4"
         """
+        if not key or not isinstance(key, str):
+            raise ValueError(f"Invalid S3 key: {key}")
+            
         try:
             parts = key.split('/')
             if len(parts) >= 3 and parts[0] == "videos":
                 user_id = parts[1]
                 filename = parts[2]
                 job_id = filename.split('.')[0]  # 확장자 제거
+                
+                # ID 유효성 검증
+                if not job_id or not job_id.replace('_', '').replace('-', '').isalnum():
+                    raise ValueError(f"Invalid job_id format: {job_id}")
+                
                 return job_id, user_id
             else:
                 # 다른 형식의 경우 키 전체를 job_id로 사용
                 filename = key.split('/')[-1]
                 job_id = filename.split('.')[0]
-                return job_id, None
+                
+                # 안전한 job_id 생성
+                safe_job_id = ''.join(c for c in job_id if c.isalnum() or c in '_-')
+                if not safe_job_id:
+                    safe_job_id = f"job_{hash(key) % 1000000:06d}"
+                
+                return safe_job_id, None
                 
         except (IndexError, AttributeError) as e:
             self.logger.error("Key에서 ID 추출 실패", error=str(e), key=key)
-            # fallback: 전체 키를 job_id로 사용
-            return key.replace('/', '_').replace('.', '_'), None
+            # fallback: 안전한 job_id 생성
+            safe_job_id = f"fallback_{hash(key) % 1000000:06d}"
+            return safe_job_id, None
     
     def poll_and_process(self, processor_func):
         """
         지속적으로 SQS를 폴링하고 메시지를 처리합니다.
+        Go 코드와 동일한 Long Polling 방식 사용
         """
-        self.logger.info("SQS 폴링 시작", queue_url=self.queue_url)
+        self.logger.info("🚀 AI Worker 시작! 메시지 대기 중...", queue_url=self.queue_url)
         
         while True:
             try:
@@ -127,8 +164,15 @@ class SQSConsumer:
                 receipt_handle = message['ReceiptHandle']
                 message_body = message['Body']
                 
-                # JobContext 생성
+                # JobContext 생성 (Go 코드 스타일 적용)
                 job_context = self.parse_s3_event(message_body)
+                
+                # 테스트 메시지이거나 파싱 불가능한 경우 메시지 삭제
+                if job_context is None:
+                    self.logger.info("테스트 메시지 또는 빈 Records - 삭제 처리")
+                    self.delete_message(receipt_handle)
+                    continue
+                
                 job_logger = get_job_logger(job_context.job_id, job_context.user_id)
                 
                 job_logger.info("Job 처리 시작", stage=LogStage.JOB_START, s3_key=job_context.s3_key)
