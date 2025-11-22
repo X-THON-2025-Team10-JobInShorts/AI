@@ -118,8 +118,18 @@ class VideoProcessingWorker:
         """
         error_str = str(error).lower()
         
+        # ValueError는 주로 파일 형식 검증 실패
+        if isinstance(error, ValueError):
+            if '비디오 파일' in str(error) or 'file format' in error_str or 'invalid' in error_str:
+                return ErrorCode.INVALID_FILE_FORMAT
+            elif 's3' in error_str or 'download' in error_str:
+                return ErrorCode.S3_DOWNLOAD_FAILED
+        
+        # 에러 메시지 기반 분류
         if 's3' in error_str or 'download' in error_str:
             return ErrorCode.S3_DOWNLOAD_FAILED
+        elif '비디오 파일' in str(error) or 'file format' in error_str:
+            return ErrorCode.INVALID_FILE_FORMAT
         elif 'ffmpeg' in error_str or 'audio' in error_str:
             return ErrorCode.FFMPEG_FAILED
         elif 'clova' in error_str or 'stt' in error_str:
@@ -167,6 +177,13 @@ def main():
     """
     애플리케이션 진입점
     """
+    # 인코딩 설정 (UTF-8)
+    import io
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    if sys.stderr.encoding != 'utf-8':
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    
     # 로깅 설정
     setup_logger(level="INFO")
     
