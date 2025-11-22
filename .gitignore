@@ -1,0 +1,378 @@
+# 🔒 AI Video Processing Pod - .gitignore
+
+# ========================================
+# 🔐 보안 관련 파일 (절대 커밋 금지!)
+# ========================================
+.env
+.env.local
+.env.production
+.env.staging
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# ========================================
+# 🐍 Python 관련
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# ========================================
+# 🐳 Docker 관련
+# ========================================
+docker-compose.override.yml
+.dockerignore
+Dockerfile.dev
+Dockerfile.prod
+
+# ========================================
+# ☁️ AWS 관련
+# ========================================
+.aws/
+aws-credentials
+aws-config
+*.pem
+
+# ========================================
+# 📁 임시 파일 & 로그
+# ========================================
+*.tmp
+*.temp
+*.log
+logs/
+tmp/
+temp/
+
+# 비디오/오디오 임시 파일
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.mkv
+*.wav
+*.mp3
+*.aac
+*.flac
+*.ogg
+
+# ========================================
+# 💻 IDE & 에디터 설정
+# ========================================
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ========================================
+# 🖥️ 운영체제 관련
+# ========================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ========================================
+# 📊 데이터 & 결과 파일
+# ========================================
+# 처리 결과물
+results/
+output/
+processed/
+exports/
+
+# 데이터셋
+data/
+dataset/
+datasets/
+*.csv
+*.json
+*.xml
+*.yaml
+*.yml
+
+# 모델 파일
+*.pkl
+*.model
+*.joblib
+*.h5
+*.pb
+
+# ========================================
+# 🔧 빌드 & 배포 관련
+# ========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+
+# Kubernetes
+k8s-secrets.yaml
+*.kubeconfig
+
+# Helm
+charts/*.tgz
+
+# ========================================
+# 📈 모니터링 & 프로파일링
+# ========================================
+# 프로파일링 결과
+*.prof
+*.pstats
+profile_*
+
+# 모니터링 데이터
+monitoring/
+metrics/
+traces/
+
+# ========================================
+# 🧪 테스트 관련
+# ========================================
+.pytest_cache/
+.tox/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# 테스트 데이터
+test_data/
+test_results/
+test_videos/
+test_audio/
+
+# ========================================
+# 🚀 CI/CD 관련
+# ========================================
+# GitHub Actions secrets는 이미 보호됨
+# 로컬 CI 설정
+.circleci/config.local.yml
+.gitlab-ci.local.yml
+
+# ========================================
+# 📝 문서 빌드
+# ========================================
+docs/_build/
+site/
+_site/
+
+# ========================================
+# 🎯 프로젝트별 특수 파일
+# ========================================
+# FFmpeg 임시 파일
+ffmpeg_*.log
+*.ffpreset
+
+# STT/LLM 캐시
+.stt_cache/
+.llm_cache/
+
+# 백업 파일
+*.bak
+*.backup
+*_backup.*
+
+# 압축 파일
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ========================================
+# Claude Code 설정 유지
+# ========================================
+# .claude/ 폴더는 유지 (SPEC.md 등)
+!.claude/
+.claude/chat_history
+.claude/temp/
