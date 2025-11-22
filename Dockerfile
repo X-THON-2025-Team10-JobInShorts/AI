@@ -20,6 +20,9 @@ COPY src/ ./src/
 # 환경 변수 설정
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONIOENCODING=utf-8
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 # 임시 디렉토리 생성 및 권한 설정
 RUN mkdir -p /tmp && chmod 777 /tmp

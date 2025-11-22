@@ -74,7 +74,7 @@ class BackendCallbackClient:
         encoded_job_id = quote(job_id, safe='')
         url = f"{self.base_url}/internal/jobs/{encoded_job_id}/complete"
         headers = {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json; charset=utf-8',
             'X-Internal-Token': self.internal_token,
             'User-Agent': f'ai-video-processor/{settings.app_env}'
         }
@@ -87,10 +87,12 @@ class BackendCallbackClient:
                            attempt=attempt + 1)
                 
                 with httpx.Client(timeout=30.0) as client:
+                    # JSON 데이터를 UTF-8로 인코딩하여 전송 (httpx는 자동으로 UTF-8 인코딩)
+                    json_data = callback_data.model_dump(exclude_none=True)
                     response = client.post(
                         url,
                         headers=headers,
-                        json=callback_data.model_dump(exclude_none=True)
+                        json=json_data
                     )
                     response.raise_for_status()
                     
@@ -186,15 +188,16 @@ class BackendCallbackClient:
             # 예: "summary/summary_hamzzi.json"
             result_key = f"summary/summary_{video_name}.json"
             
-            # JSON으로 변환
+            # JSON으로 변환 (ensure_ascii=False로 한글 유지)
             json_data = json.dumps(result_data, ensure_ascii=False, indent=2)
             
-            # S3에 업로드
+            # S3에 업로드 (UTF-8 인코딩 명시)
             s3_client.put_object(
                 Bucket=settings.result_bucket_name,
                 Key=result_key,
                 Body=json_data.encode('utf-8'),
-                ContentType='application/json'
+                ContentType='application/json; charset=utf-8',
+                ContentEncoding='utf-8'
             )
             
             logger.info("결과 파일 S3 업로드 완료", 
